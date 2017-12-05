@@ -91,6 +91,38 @@ seasons_hurr <- seasons_hurr[,2:10]
 > What does model tell you about the research question?
 > Interpret coefficients in context/explain relevance
 
+```{r}
+# Looking at AVERAGE damage for hurricanes that occurred in the same year:
+H_wiki_1b <- costly_hurr %>%
+  group_by(co2) %>%
+  summarise(avg_damage = mean(damage), total_damage = sum(damage), max_damage = max(damage)) %>%
+  mutate(sqrt_avg_damage = sqrt(avg_damage), sqrt_max_damage = sqrt(max_damage))
+
+mod_avg <- lm(sqrt_avg_damage ~ co2, data = H_wiki_1b)
+summary(mod_avg)
+
+ggplot(H_wiki_1b, aes(y = sqrt_avg_damage, x = co2)) + geom_point() + labs(title = "Average Damage by Costly Hurricanes", x = "CO2 (ppm)", y = "Square Root Average Damage (Billions)")
+```
+
+```{r}
+# Category - no indicators were significant, 
+# Is major:
+H_wiki_1 <- H_wiki_1 %>% mutate(is_major = ifelse(category >= 3, TRUE, FALSE),
+                                sqrt_damage = sqrt(damage))
+
+mod_h2 <- lm(sqrt_damage ~ is_major, data = H_wiki_1)
+anova(mod_h2) # at .1 for sqrt_damage.
+```
+
+```{r}
+# Looking at MAX damage for costly hurricanes:
+mod_max <- lm(sqrt_max_damage ~ co2, data = H_wiki_1b)
+summary(mod_max)
+
+ggplot(H_wiki_1b, aes(y = sqrt_max_damage, x = co2)) + geom_point() + labs(title = "Damage by the Most Costly Hurricane", x = "CO2 (ppm)", y = "Sqare Root Max Damage (Billions)")
+```
+
+
 # Diagnostics
 
 > Full diagnostics of the model
