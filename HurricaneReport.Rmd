@@ -9,6 +9,173 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, echo = FALSE}
+# Acquire Necessary R Packages:
+require(stringr)
+require(mdsr)
+require(tidyverse)
+require(mosaic)
+require(tidyr)
+require(dplyr)
+require(readxl)
+require(rvest)
+require(lubridate)
 
+```
+
+# Abstract
+
+> one paragraph
+> Summarize Goals/Results
+> Just Add/Modify our Project Summary?
+
+# Introduction
+
+> What is/are the research question(s)
+> Why is this interesting/important?
+> What contributions have we made to answer this question?
+  > Overview of the Model
+
+# Data
+
+> Brief Description of dataset(s)
+  > Variables?
+  > Where did the data come from?
+  > Units for each measurment
+  > Population that was sampled
+> Read in the Data and add new variables
+> Univariate Analysis
+
+```{r, echo = FALSE}
+# Obtain Hurricane Path Data from NOAA Hurricane Reports:
+
+```
+
+```{r, echo = FALSE}
+# Obtain CO2 Data - Found originally in txt file:
+CO2_data <- read.csv("CO2_data.csv")
+```
+
+```{r, echo = FALSE}
+# Scrape the Data for the Costliest Atlantic Hurricanes from Wikipedia:
+url <- 'https://en.wikipedia.org/wiki/List_of_costliest_Atlantic_hurricanes'
+list <- url %>%
+  read_html() %>%
+  html_nodes("table")
+  
+  # Select the correct table to a dataframe:
+costly_hurr <- html_table(list[[1]], fill = TRUE)
+
+  # Join with CO2 Data:
+costly_hurr <- left_join(costly_hurr, CO2_data, by = c("Season" = "Year"))
+
+  # Modify column names:
+colnames(costly_hurr) = c("name","damage","year","classification","area","reference","co2")
+
+```
+
+```{r, echo = FALSE}
+# Scrape the Data for each Atlantic Hurricane Season since 1910:
+  # Data originally obtained from the following url:
+  # https://en.wikipedia.org/wiki/Atlantic_hurricane_season#Number_of_tropical_storms_and_hurricanes_per_season
+  # Data was Modified - modified data = Hurricane_Seasons.csv
+  # Please See the Appendix to see how data was modified
+seasons_hurr <- read_csv("Hurricane_Seasons.csv")
+seasons_hurr <- seasons_hurr[,2:10]
+
+```
+
+
+# Results
+
+> What does model tell you about the research question?
+> Interpret coefficients in context/explain relevance
+
+# Diagnostics
+
+> Full diagnostics of the model
+> Predictions
+
+# Conclusion
+
+> First - remind of question and provide summary of findings
+> Second - Discussion of model limitations
+  > What can be done to improve the model?
+  > What can be done to improve the data?
+
+# Appendix
+
+### Modifications to Hurricane Season Data:
+```{r}
+url <- "https://en.wikipedia.org/wiki/Atlantic_hurricane_season#Number_of_tropical_storms_and_hurricanes_per_season"
+
+list <- url %>%
+  read_html() %>%
+  html_nodes("table")
+  
+# Get Data:
+names <- c("year","num_trop_storms","num_hurricanes","num_major","deaths","damage")
+
+h_season01 <- html_table(list[[8]], fill = TRUE)
+h_season01 <- h_season01[,1:6]
+colnames(h_season01) <- names
+
+h_season02 <- html_table(list[[9]], fill = TRUE)
+h_season02 <- h_season02[,1:6]
+colnames(h_season02) <- names
+
+h_season03 <- html_table(list[[10]], fill = TRUE)
+h_season03 <- h_season03[,1:6]
+colnames(h_season03) <- names
+
+h_season04 <- html_table(list[[11]], fill = TRUE)
+h_season04 <- h_season04[,1:6]
+colnames(h_season04) <- names
+
+h_season05 <- html_table(list[[12]], fill = TRUE)
+h_season05 <- h_season05[,1:6]
+colnames(h_season05) <- names
+
+h_season06 <- html_table(list[[13]], fill = TRUE)
+h_season06 <- h_season06[,1:6]
+colnames(h_season06) <- names
+
+h_season07 <- html_table(list[[14]], fill = TRUE)
+h_season07 <- h_season07[,1:6]
+colnames(h_season07) <- names
+
+h_season08 <- html_table(list[[15]], fill = TRUE)
+h_season08 <- h_season08[,c(1,3:7)]
+colnames(h_season08) <- names
+
+h_season09 <- html_table(list[[16]], fill = TRUE)
+h_season09 <- h_season09[,c(1,3:7)]
+colnames(h_season09) <- names
+
+h_season10 <- html_table(list[[17]], fill = TRUE)
+h_season10 <- h_season10[,c(1,3:7)]
+colnames(h_season10) <- names
+
+h_season11 <- html_table(list[[18]], fill = TRUE)
+h_season11 <- h_season11[,c(1,3:7)]
+colnames(h_season11) <- names
+
+# Join together:
+h_season <- rbind(h_season01, h_season02, h_season03, h_season04, h_season05, h_season06, h_season07, h_season08, h_season09, h_season10, h_season11)
+
+# Remove entries with Unknown damage:
+h_season <- h_season %>% filter(damage != "Unknown")
+
+# Remove symbols/words from Damage and multiply by appropriate multiplier column:
+h_season <- h_season %>%
+  mutate(damage_number = readr::parse_number(str_extract(damage, "[0-9|\\.]+")),
+         damage_magnitude = str_extract(damage, "[m|b]illion"),
+         damage_magnitude = ifelse(is.na(damage_magnitude), "thousand", damage_magnitude),
+         damage = ifelse(damage_magnitude == "thousand", damage_number*1000, 
+                         ifelse(damage_magnitude == "million", damage_number*1000000, damage_number*1000000000)))
+
+# Add total storms column:
+h_season <- h_season %>% mutate(storms_total = num_trop_storms + num_hurricanes)
+```
 
 
