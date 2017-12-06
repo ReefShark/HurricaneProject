@@ -47,7 +47,6 @@ This project aims to analyze the paths of hurricanes that made landfall on the C
   > Units for each measurment
   > Population that was sampled
 > Read in the Data and add new variables
-> Univariate Analysis
 
 ```{r, echo = FALSE}
 # Obtain Hurricane Path Data from NOAA Hurricane Reports:
@@ -57,6 +56,8 @@ This project aims to analyze the paths of hurricanes that made landfall on the C
 ```{r, echo = FALSE}
 # Obtain CO2 Data - Found originally in txt file:
 CO2_data <- read.csv("CO2_data.csv")
+CO2_data <- CO2_data[,2:3]
+colnames(CO2_data) <- c("year","co2")
 ```
 
 ```{r, echo = FALSE}
@@ -70,8 +71,7 @@ list <- url %>%
 costly_hurr <- html_table(list[[1]], fill = TRUE)
 
   # Join with CO2 Data:
-costly_hurr <- left_join(costly_hurr, CO2_data, by = c("Season" = "Year"))
-costly_hurr <- costly_hurr[,c(1:6,8)]
+costly_hurr <- left_join(costly_hurr, CO2_data, by = c("Season" = "year"))
 
   # Modify column names:
 colnames(costly_hurr) = c("name","damage","year","classification","area","reference","co2")
@@ -98,7 +98,7 @@ costly_hurr <- costly_hurr %>%
 ```
 
 ```{r, echo = FALSE}
-# Scrape the Data for each Atlantic Hurricane Season since 1910:
+# Scrape the Data for each Atlantic Hurricane Season since 1980:
   # Data originally obtained from the following url:
   # https://en.wikipedia.org/wiki/Atlantic_hurricane_season#Number_of_tropical_storms_and_hurricanes_per_season
   # Data was Modified - modified data = Hurricane_Seasons.csv
@@ -106,6 +106,16 @@ costly_hurr <- costly_hurr %>%
 seasons_hurr <- read_csv("Hurricane_Seasons.csv")
 seasons_hurr <- seasons_hurr[,2:10]
 
+  # Join to CO2 Data:
+seasons_hurr <- left_join(seasons_hurr, CO2_data, by = c("year" = "year"))
+
+```
+
+> Univariate Analysis:
+
+```{r}
+# CO2:
+ggplot(CO2_data, aes(x = year, y = co2)) + geom_point() + labs(title = "Change in Atmostpheric CO2 since 1980", x = "Year", y = "CO2 (ppm)")
 ```
 
 
@@ -121,10 +131,12 @@ costly_hurr_2 <- costly_hurr %>%
   summarise(avg_damage = mean(damage), total_damage = sum(damage), max_damage = max(damage)) %>%
   mutate(sqrt_avg_damage = sqrt(avg_damage), sqrt_max_damage = sqrt(max_damage))
 
+# Fit the model:
 mod_avg <- lm(sqrt_avg_damage ~ co2, data = costly_hurr_2)
 summary(mod_avg)
 
-ggplot(costly_hurr_2, aes(y = sqrt_avg_damage, x = co2)) + geom_point() + labs(title = "Average Damage by Costly Hurricanes", x = "CO2 (ppm)", y = "Square Root Average Damage (Billions)")
+# Plot:
+ggplot(costly_hurr_2, aes(y = sqrt_avg_damage, x = co2)) + geom_point() + labs(title = "Average Damage by Costly Hurricanes", x = "CO2 (ppm)", y = "Square Root Average Damage (Billions)") + geom_smooth(method = "lm")
 ```
 
 ```{r}
@@ -133,6 +145,7 @@ ggplot(costly_hurr_2, aes(y = sqrt_avg_damage, x = co2)) + geom_point() + labs(t
 costly_hurr <- costly_hurr %>% mutate(is_major = ifelse(category >= 3, TRUE, FALSE),
                                 sqrt_damage = sqrt(damage))
 
+# Fit the model:
 mod_h2 <- lm(sqrt_damage ~ is_major, data = costly_hurr)
 anova(mod_h2) # at .1 for sqrt_damage.
 ```
@@ -142,7 +155,22 @@ anova(mod_h2) # at .1 for sqrt_damage.
 mod_max <- lm(sqrt_max_damage ~ co2, data = costly_hurr_2)
 summary(mod_max)
 
-ggplot(costly_hurr_2, aes(y = sqrt_max_damage, x = co2)) + geom_point() + labs(title = "Damage by the Most Costly Hurricane", x = "CO2 (ppm)", y = "Sqare Root Max Damage (Billions)")
+ggplot(costly_hurr_2, aes(y = sqrt_max_damage, x = co2)) + geom_point() + labs(title = "Damage by the Most Costly Hurricane", x = "CO2 (ppm)", y = "Sqare Root Max Damage (Billions)") + geom_smooth(method = "lm")
+```
+
+```{r}
+# Hurricane Season:
+seasons_hurr <- seasons_hurr %>%
+  filter(!is.na(co2)) %>%
+  mutate(log_damage = log(damage))
+
+  # Model with co2 as sole predictor:
+season_mod1 <- lm(log_damage ~ co2, data = seasons_hurr)
+summary(season_mod1) # Sig at .05, R = .13
+
+ggplot(seasons_hurr, aes(x = co2, y = log_damage)) + geom_point() + labs(title = "Damage per Hurricane Season 1980 - 2016", x = "CO2 (ppm)", y = "Log Damage") + geom_smooth(method = "lm")
+
+
 ```
 
 
@@ -188,7 +216,7 @@ max_actual_diff <- actual_Harvey - p2[1]; max_actual_diff # off by 173.28 billio
 # Appendix
 
 ### Modifications to Hurricane Season Data:
-```{r}
+```{r, eval = FALSE}
 url <- "https://en.wikipedia.org/wiki/Atlantic_hurricane_season#Number_of_tropical_storms_and_hurricanes_per_season"
 
 list <- url %>%
@@ -197,34 +225,6 @@ list <- url %>%
   
 # Get Data:
 names <- c("year","num_trop_storms","num_hurricanes","num_major","deaths","damage")
-
-h_season01 <- html_table(list[[8]], fill = TRUE)
-h_season01 <- h_season01[,1:6]
-colnames(h_season01) <- names
-
-h_season02 <- html_table(list[[9]], fill = TRUE)
-h_season02 <- h_season02[,1:6]
-colnames(h_season02) <- names
-
-h_season03 <- html_table(list[[10]], fill = TRUE)
-h_season03 <- h_season03[,1:6]
-colnames(h_season03) <- names
-
-h_season04 <- html_table(list[[11]], fill = TRUE)
-h_season04 <- h_season04[,1:6]
-colnames(h_season04) <- names
-
-h_season05 <- html_table(list[[12]], fill = TRUE)
-h_season05 <- h_season05[,1:6]
-colnames(h_season05) <- names
-
-h_season06 <- html_table(list[[13]], fill = TRUE)
-h_season06 <- h_season06[,1:6]
-colnames(h_season06) <- names
-
-h_season07 <- html_table(list[[14]], fill = TRUE)
-h_season07 <- h_season07[,1:6]
-colnames(h_season07) <- names
 
 h_season08 <- html_table(list[[15]], fill = TRUE)
 h_season08 <- h_season08[,c(1,3:7)]
@@ -243,7 +243,7 @@ h_season11 <- h_season11[,c(1,3:7)]
 colnames(h_season11) <- names
 
 # Join together:
-h_season <- rbind(h_season01, h_season02, h_season03, h_season04, h_season05, h_season06, h_season07, h_season08, h_season09, h_season10, h_season11)
+h_season <- rbind(h_season08, h_season09, h_season10, h_season11)
 
 # Remove entries with Unknown damage:
 h_season <- h_season %>% filter(damage != "Unknown")
