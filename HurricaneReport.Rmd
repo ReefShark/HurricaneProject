@@ -108,7 +108,7 @@ seasons_hurr <- seasons_hurr[,2:10]
 
   # Join to CO2 Data:
 seasons_hurr <- left_join(seasons_hurr, CO2_data, by = c("year" = "year"))
-
+current_season <- seasons_hurr$damage[38]
 ```
 
 > Univariate Analysis:
@@ -205,6 +205,18 @@ max_actual_diff <- actual_Harvey - p2[1]; max_actual_diff # off by 173.28 billio
   
   # Lurking Variables may account for unaccounted for variation in damage.
 ```
+
+```{r}
+# Predicting 2017 Hurricane Season Damage:
+p3 <- exp(predict(season_mod1, newdata, interval = "predict")); p3
+  # Difference with upper:
+season_upper_diff <- current_season - p3[3]; season_upper_diff # Over Predicted.
+  # Difference with lower:
+season_lower_diff <- current_season - p3[2]; season_lower_diff # Under Predicted
+  # Difference with Fit:
+season_actual_diff <- current_season - p3[1]; season_actual_diff # Under Predicted
+```
+
 
 # Conclusion
 
