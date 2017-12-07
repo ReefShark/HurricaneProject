@@ -21,6 +21,8 @@ require(readxl)
 require(rvest)
 require(lubridate)
 
+# Working directory should be the repo folder - add data to the repo folder
+
 ```
 
 # Abstract
@@ -113,7 +115,7 @@ current_season <- seasons_hurr$damage[38]
 
 > Univariate Analysis:
 
-```{r}
+```{r, echo = FALSE}
 # CO2:
 ggplot(CO2_data, aes(x = year, y = co2)) + geom_point() + labs(title = "Change in Atmostpheric CO2 since 1980", x = "Year", y = "CO2 (ppm)")
 ```
@@ -272,4 +274,4 @@ h_season <- h_season %>%
 h_season <- h_season %>% mutate(storms_total = num_trop_storms + num_hurricanes)
 ```
 
-
+### Process of Acquiring Damage Data for Counties for 9 Costly Hurricanes:
