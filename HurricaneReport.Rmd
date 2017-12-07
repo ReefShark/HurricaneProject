@@ -40,8 +40,17 @@ This project aims to analyze the paths of hurricanes that made landfall on the C
 > Why is this interesting/important?
 > What contributions have we made to answer this question?
   > Overview of the Model
+  
 
 # Data
+
+To explore the relationship between gobal warming and the impact of tropical cyclones, we obtained 4 datasets. The first dataset, `CO2_data`, contains the average level of global atmospheric co2 (ppm) for each year from 1980 to 2016. The data was originally obtained as a txt file from the National Oceanographic and Atmostpheric Administration (NOAA). The average global atmospheric co2 for 2017 was also obtained from the NOAA official website. 
+
+The second dataset, `costly_hurr`, includes Atlantic hurricanes that incurred $1 Billion or more in damage to the United States. The original dataset, scraped from Wikipedia, included the following variables: Name (of the hurricane), Damage (in Billions), Storm Classification (at peak intensity), Areas Affected, and References. Peak hurricane category was extracted from the storm classification variable. Additionally, the `CO2_data` dataset was joined to this dataset for analysis.
+
+The third dataset, `seasons_hurr`, includes the total amount of damage costs for each Atlantic hurricane season from 1980 to 2016. This dataset, like the previous, was scraped from Wikipedia. [FINISH PARAGRAPH]
+
+The final dataset is a compilation of datasets obtained from the NOAA website. [FINISH PARAGRAPH]
 
 > Brief Description of dataset(s)
   > Variables?
@@ -50,15 +59,13 @@ This project aims to analyze the paths of hurricanes that made landfall on the C
   > Population that was sampled
 > Read in the Data and add new variables
 
-```{r, echo = FALSE}
-# Obtain Hurricane Path Data from NOAA Hurricane Reports:
-
-```
 
 ```{r, echo = FALSE}
 # Obtain CO2 Data - Found originally in txt file:
 CO2_data <- read.csv("CO2_data.csv")
+  # Remove excess Column:
 CO2_data <- CO2_data[,2:3]
+  # Correct column names according to tidy:
 colnames(CO2_data) <- c("year","co2")
 ```
 
@@ -78,7 +85,7 @@ costly_hurr <- left_join(costly_hurr, CO2_data, by = c("Season" = "year"))
   # Modify column names:
 colnames(costly_hurr) = c("name","damage","year","classification","area","reference","co2")
 
-# Save Harvey Damage:
+# Save Harvey Damage (for later use):
 actual_Harvey <- readr::parse_number(substring(costly_hurr$damage[1],2))
 
 # Modifications to the Data:
@@ -113,11 +120,19 @@ seasons_hurr <- left_join(seasons_hurr, CO2_data, by = c("year" = "year"))
 current_season <- seasons_hurr$damage[38]
 ```
 
+```{r, echo = FALSE}
+# Obtain Hurricane Path Data from NOAA Hurricane Reports:
+
+```
+
+
 > Univariate Analysis:
+
+Prior to conducting our analysis, we briefly explored the relationship between year and atmospheric co2. As expected, there is a strong, positive relationship between the two variables. Since 1980, Atmospheric co2 has steadily increased to a present value above 400 ppm. [FINISH PARAGRAPH]
 
 ```{r, echo = FALSE}
 # CO2:
-ggplot(CO2_data, aes(x = year, y = co2)) + geom_point() + labs(title = "Change in Atmostpheric CO2 since 1980", x = "Year", y = "CO2 (ppm)")
+ggplot(CO2_data, aes(x = year, y = co2)) + geom_point() + labs(title = "Change in Atmospheric CO2 since 1980", x = "Year", y = "CO2 (ppm)")
 ```
 
 
