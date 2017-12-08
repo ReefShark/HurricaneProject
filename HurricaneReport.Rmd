@@ -46,11 +46,11 @@ This project aims to analyze the paths of hurricanes that made landfall on the C
 
 To explore the relationship between gobal warming and the impact of tropical cyclones, we obtained 4 datasets. The first dataset, `CO2_data`, contains the average level of global atmospheric co2 (ppm) for each year from 1980 to 2016. The data was originally obtained as a txt file from the National Oceanographic and Atmostpheric Administration (NOAA). The average global atmospheric co2 for 2017 was also obtained from the NOAA official website. 
 
-The second dataset, `costly_hurr`, includes Atlantic hurricanes that incurred $1 Billion or more in damage to the United States. The original dataset, scraped from Wikipedia, included the following variables: Name (of the hurricane), Damage (in Billions), Storm Classification (at peak intensity), Areas Affected, and References. Peak hurricane category was extracted from the storm classification variable. Additionally, the `CO2_data` dataset was joined to this dataset for analysis.
+The second dataset, `costly_hurr`, includes Atlantic hurricanes that incurred $1 Billion or more in damage to the United States. The original dataset, scraped from Wikipedia, included the following variables: Name (of the hurricane), Damage (in Billions), Storm Classification (at peak intensity), Areas Affected, and References. Peak hurricane category was extracted from the storm classification variable. Additionally, the `CO2_data` dataset was joined to this dataset for analysis by the year.
 
-The third dataset, `seasons_hurr`, includes the total amount of damage costs for each Atlantic hurricane season from 1980 to 2016. This dataset, like the previous, was scraped from Wikipedia. [FINISH PARAGRAPH]
+The third dataset, `seasons_hurr`, includes the total amount of damage costs for each Atlantic hurricane season from 1980 to 2016. This dataset, like the previous, was scraped from Wikipedia and includes the following variables for each year: the number of tropical storms, the number of hurricanes, the number of major hurricanes (Category 3-5), deaths, and damage. Additionally, the `CO2_data` dataset was also joined to this dataset by the year for analysis.
 
-The final dataset is a compilation of datasets obtained from the NOAA website. [FINISH PARAGRAPH]
+The final dataset is a compilation of hurricane path and damage data for 9 costly Atlantic hurricanes obtained from NOAA in addition to census data by county from the US Census Bureau website. [FINISH PARAGRAPH]
 
 > Brief Description of dataset(s)
   > Variables?
@@ -289,4 +289,194 @@ h_season <- h_season %>%
 h_season <- h_season %>% mutate(storms_total = num_trop_storms + num_hurricanes)
 ```
 
-### Process of Acquiring Damage Data for Counties for 9 Costly Hurricanes:
+### Process of Acquiring Path, Damage, and Population Data for the 9 Hurricanes:
+
+Path Data for each Hurricane (listed in the Data section) was contained in a table on a hurricane's report on the NOAA website. PDFtables.com converted the pdf file to an excel file for use. The following code was used for all 9 of the hurricanes, but hurricane Rita will be used as an example.
+
+#### Initial Loading of Path Data:
+```{r, eval = FALSE}
+# Note: All files were saved in the working directory for this portion:
+
+# Load in the Excel File:
+Rita <- read_excel("Rita.xlsx", sheet = 11)
+
+# Temporarily Store certain information:
+datelandfall1 <- "24 / 0740"
+landfall1 <- "Johnson's Bayou, LA"
+  # Note: For Hurricanes with more than one date and location of landfall, there was more than 1 datelandfall and landfall holder
+
+# Remove Extra Rows and Columns:
+Rita <- Rita[c(4:38,42),] 
+  # The excel files contained extra, misc. information that was unneded
+  # Rows selected varied by hurricane
+
+# Change some column names:
+name <- c("Date_Time","Latitude(N)","Longitude(W)","Pressure","Wind(kts)","Stage")
+colnames(Rita) <- name
+
+```
+
+#### Path Data Clean-up:
+```{r, eval = FALSE}
+  # Edit Data:
+Rita <- Rita %>%
+  mutate(Landfall = ifelse(Date_Time == datelandfall1, landfall1, "No"))
+
+# Seperation of Date_Time into Date and Time:
+Rita <- Rita %>%
+  # Extract individual variables from Date_Time
+  mutate(Year = "2005", 
+         Time = substring(Date_Time,5,9),
+         Day = substring(Date_Time,1,2),
+         Month = "9") %>%
+  # Join Year, Month, and Day together:
+  unite(Date, Year, Month, Day, sep = "-", remove = FALSE) %>%
+  # Change Date to Date format:
+  mutate(Date = as.Date(Date)) %>%
+  select(Date, Time, `Latitude(N)`, `Longitude(W)`, Pressure, `Wind(kts)`, Stage, Landfall)
+
+# Convert Some Columns to Numeric:
+Rita <- Rita %>%
+  mutate(Time = readr::parse_number(Time),
+         `Wind(kts)` = readr::parse_number(`Wind(kts)`),
+         `Latitude(N)` = readr::parse_number(`Latitude(N)`),
+         `Longitude(W)` = readr::parse_number(`Longitude(W)`))
+  
+# Obtain the Category Level from Wind Speed:
+Rita <- Rita %>%
+  mutate(Category = ifelse(`Wind(kts)` < 64, 0, ifelse(`Wind(kts)` >= 62 & `Wind(kts)` <= 82,1,ifelse(`Wind(kts)` >= 83 & `Wind(kts)` <= 95,2,ifelse(`Wind(kts)` >= 96 & `Wind(kts)` <= 113,3,ifelse(`Wind(kts)` >= 114 & `Wind(kts)` <= 135, 4,5))))))
+```
+
+The NOAA website has an option to search damage records by text search. Using this method, it is possible to search for specific hurricanes. However, the data provided is not downloadable. It is possible to also search by date and state and obtain data downloadable as a csv. Using the dates of each hurricane and the states known to be affected, damage data was gathered using this method. Once damage data was obtained, it was joined to the path data by date and time. Below is the code for hurricane Rita: 
+
+#### Acquire Damage Data and Cleanup:
+```{r, eval = FALSE}
+# Example of Loading in a csv file for a state affected by Hurricane Rita:
+RitaFlorida <- read_csv("RitaFlorida.csv")
+
+# Bind all Damage Data Together:
+RitaDamage <- rbind(RitaPuerto, RitaFlorida, RitaTexas, RitaLouis, RitaMiss, RitaArkansas, RitaTenn, RitaMissouri)
+
+# Change BEGIN_DATE to a Date type:
+RitaDamage <- RitaDamage %>%
+  mutate(BEGIN_DATE = mdy(BEGIN_DATE))
+
+# Change Time to 0, 600, 1200, 1800 - Based on a determined Range:
+  # 0 - 600 --> 0, 600 - 1200 --> 600, 1200 - 1800 --> 1200, 1800
+  # Ensures every damage point will match to the Hurricane Data
+  # Hurricane data typically only recorded at 0, 600, 1200, 1800
+RitaDamage <- RitaDamage %>%
+  mutate(BEGIN_TIME = ifelse(BEGIN_TIME >= 0 & BEGIN_TIME < 600, 0, 
+                       ifelse(BEGIN_TIME >= 600 & BEGIN_TIME < 1200, 600,
+                              ifelse(BEGIN_TIME >= 1200 & BEGIN_TIME < 1800, 1200,
+                                     1800))))
+
+```
+
+#### Join Path and Damage Data:
+```{r, eval = FALSE}
+# Join the Data on Date and Time:
+RitaCombined <- left_join(Rita, RitaDamage, by = c("Date" = "BEGIN_DATE", "Time" = "BEGIN_TIME"))
+
+# Total Damage Column:
+RitaCombined <- RitaCombined %>% 
+  mutate(DAMAGE_TOTAL = DAMAGE_PROPERTY_NUM + DAMAGE_CROPS_NUM)
+
+# Remove NAs from Total Damage:
+RitaCombined1 <- RitaCombined %>% filter(!is.na(DAMAGE_TOTAL))
+RitaCombined1 <- RitaCombined1 %>% filter(DAMAGE_TOTAL >= 0)
+
+# To ensure the results of this process were not lost, the data was written to a csv file at this time.
+write.csv(RitaCombined1, "RitaCombinedData.csv")
+```
+
+Census data was downloaded from the US Census Bureau website as two csv files: 1 for 2010-2016 and another for 2000-2010. Below is the process for obtaining census data:
+
+#### Census Data 1: 2010-2016
+```{r, eval = FALSE}
+# Vector of correct column names:
+names <- c("id","id2", "geography", "2010_census","2010_estimate_base","2010_estimate_july","2011","2012","2013","2014","2015","2016")
+
+# Load in the Data:
+USA <- read_csv("CensusData/USA1016.csv")
+  # Change Column Names
+colnames(USA) <- names
+  # Remove Excess Row
+USA <- USA[2:3143,]
+
+# Seperate Geography into State and County:
+USA <- USA %>%
+  mutate(state = str_split_fixed(geography, ", ", 2)[,2],
+         county = str_split_fixed(geography, ", ", 2)[,1])
+
+# Change columns to numeric:
+USA <- USA %>%
+  mutate(`2010_census` = readr::parse_number(`2010_census`),
+         `2010_estimate_base` = readr::parse_number(`2010_estimate_base`),
+         `2010_estimate_july` = readr::parse_number(`2010_estimate_july`),
+         `2011` = readr::parse_number(`2011`),
+         `2012` = readr::parse_number(`2012`),
+         `2013` = readr::parse_number(`2013`),
+         `2014` = readr::parse_number(`2014`),
+         `2015` = readr::parse_number(`2015`),
+         `2016` = readr::parse_number(`2016`))
+
+# Consolidate the 2010 columns into 1 average column:
+USA <- USA %>%
+  mutate(`2010` = trunc((`2010_census` + `2010_estimate_base` + `2010_estimate_july`)/3))
+
+# Select Columns of importance:
+USA <- USA %>% select(id, id2, state, county, `2010`, `2011`, `2012`, `2013`, `2014`, `2015`, `2016`)
+
+# Convert to Tidy Format:
+USA_tidy <- gather(USA, key = year, value = population, -id, -id2, -state, -county)
+
+# Save the file for safety:
+write.csv(USA_tidy, "USA2010_16_tidy.csv")
+```
+
+#### Census Data 2: 2000-2010
+```{r, eval = FALSE}
+# Vector of correct column names:
+names <- c("lev","region","division","state_num","county_num","state","county","2000_base","2000_pop","2001","2002","2003","2004","2005","2006","2007","2008","2009","2010_census","2010_estimate")
+
+# 2010 - 2016:
+USA0 <- read_csv("CensusData/USA010.csv")
+# Change Column Names:
+colnames(USA0) <- names
+  # Select only necessary columns:
+USA0 <- USA0[,6:18]
+  # Remove row for the entire state:
+USA0 <- USA0 %>% filter(state != county)
+
+# Consolidate 2000 columns into 1 average column:
+USA0 <- USA0 %>%
+  mutate(`2000` = (`2000_base` + `2000_pop`)/2)
+
+# Select Columns:
+USA0 <- USA0 %>% select(state, county, `2000`,`2001`,`2002`,`2003`,`2004`,`2005`,`2006`,`2007`,`2008`,`2009`)
+
+# Convert to Tidy Format:
+USA0_tidy <- gather(USA0, key = year, value = population, -state, -county)
+
+# Write to file for safety:
+write.csv(USA0_tidy, "USA2000_10_tidy.csv")
+```
+
+The Census data for 2010-2016 was joined to hurricanes that fell within those years. Similarly, the Census data for 2000-2010 was joined to the remaining hurricanes. Census data was joined to each of our 9 hurricanes. Once again, Rita will be used as the example in the code below:
+
+#### Join Path, Damage, and Census Data:
+```{r}
+# Preparations to the Census Data before Joining:
+
+```
+
+#### Link to the Websites Used:
+https://www.ncdc.noaa.gov/stormevents/faq.jsp
+http://www.nhc.noaa.gov/data/tcr/index.php?season=2005&basin=atl
+https://www.ncdc.noaa.gov/stormevents/choosedates.jsp?statefips=17%2CILLINOIS
+https://en.wikipedia.org/wiki/List_of_costliest_Atlantic_hurricanes
+https://en.wikipedia.org/wiki/Atlantic_hurricane_season
+https://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?src=bkmk (From census.gov)
+https://www.census.gov/data/datasets/time-series/demo/popest/intercensal-2000-2010-counties.html
+
