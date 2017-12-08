@@ -468,6 +468,52 @@ The Census data for 2010-2016 was joined to hurricanes that fell within those ye
 #### Join Path, Damage, and Census Data:
 ```{r}
 # Preparations to the Census Data before Joining:
+# 2010-2016 Census Data:
+USA_tidy <- read_csv("HurricaneData/USA2010_16_tidy.csv")
+  # Remove District of Columbia:
+USA_tidy <- USA_tidy %>%
+  filter(state != "District of Columbia")
+  # Convert state to Abbreviations to match path/damage data: 
+for(i in 1:21987) {
+  USA_tidy$state[i] = state.abb[grep(USA_tidy$state[i], state.name)]
+  i = i + 1
+}
+  # Set county to lowercase to match path/damage:
+USA_tidy <- USA_tidy %>%
+  mutate(county = tolower(county))
+
+# 2000-2010 Census Data:
+USA0_tidy <- read_csv("HurricaneData/USA2000_10_tidy.csv")
+  # Remove District of Columbia:
+USA0_tidy <- USA0_tidy %>%
+  filter(state != "District of Columbia")
+  # Convert state to Abbreviations to match path/damage data:
+for(i in 1:31420) {
+  USA0_tidy$state[i] = state.abb[grep(USA0_tidy$state[i], state.name)]
+  i = i + 1
+}
+  # Set county to lowercase to match path/damage:
+USA0_tidy <- USA0_tidy %>%
+  mutate(county = tolower(county))
+
+# Join:
+  # Load in if Saved previously or simply use RitaCombined
+Rita <- read_csv("HurricaneData/RitaCombinedData.csv")
+
+Rita <- Rita %>%
+  mutate(CZ_NAME_STR = tolower(CZ_NAME_STR),
+         Year = lubridate::year(Date)) %>%
+  # Zones have NA in the BEGIN_LOCATION COLUMN:
+  filter(!is.na(BEGIN_LOCATION)) %>%
+  # Replace co. with county:
+  mutate(CZ_NAME_STR = gsub("co\\.$","county",CZ_NAME_STR)) %>%
+  # Remove entries with par. at the end:
+  filter(!grepl("par\\.$",CZ_NAME_STR))
+  # Combine with Census Data:
+Rita_Census_tidy <- left_join(Rita, USA0_tidy, by = c("Year" = "year","CZ_NAME_STR" = "county","STATE_ABBR" = "state"))
+
+# For safety - write to file:
+write.csv(Rita_Census_tidy, "Rita_Census_tidy.csv")
 
 ```
 
