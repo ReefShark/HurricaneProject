@@ -51,6 +51,7 @@ The second dataset, `costly_hurr`, includes Atlantic hurricanes that incurred $1
 The third dataset, `seasons_hurr`, includes the total amount of damage costs for each Atlantic hurricane season from 1980 to 2016. This dataset, like the previous, was scraped from Wikipedia and includes the following variables for each year: the number of tropical storms, the number of hurricanes, the number of major hurricanes (Category 3-5), deaths, and damage. Additionally, the `CO2_data` dataset was also joined to this dataset by the year for analysis.
 
 The final dataset is a compilation of hurricane path and damage data for 9 costly Atlantic hurricanes obtained from NOAA in addition to census data by county from the US Census Bureau website. [FINISH PARAGRAPH]
+  > Note: there was some problem with the census data joining for Irene. I'm not sure what happened. 
 
 > Brief Description of dataset(s)
   > Variables?
