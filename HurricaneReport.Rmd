@@ -44,6 +44,8 @@ This project aims to analyze the paths of hurricanes that made landfall on the C
 
 # Data
 
+## Datasets:
+
 To explore the relationship between gobal warming and the impact of tropical cyclones, we obtained 4 datasets. The first dataset, `CO2_data`, contains the average level of global atmospheric co2 (ppm) for each year from 1980 to 2016. The data was originally obtained as a txt file from the National Oceanographic and Atmostpheric Administration (NOAA). The average global atmospheric co2 for 2017 was also obtained from the NOAA official website. 
 
 The second dataset, `costly_hurr`, includes Atlantic hurricanes that incurred $1 Billion or more in damage to the United States. The original dataset, scraped from Wikipedia, included the following variables: Name (of the hurricane), Damage (in Billions), Storm Classification (at peak intensity), Areas Affected, and References. Peak hurricane category was extracted from the storm classification variable. Additionally, the `CO2_data` dataset was joined to this dataset for analysis by the year.
@@ -122,12 +124,12 @@ current_season <- seasons_hurr$damage[38]
 ```
 
 ```{r, echo = FALSE}
-# Obtain Hurricane Path Data from NOAA Hurricane Reports:
+# Load in Compilation Dataset of Hurricane Path, Damage, and Census Data for the 9 Costly Hurricanes:
+hurr_9 <- read_csv("Costly_9_Data.csv")
 
 ```
 
-
-> Univariate Analysis:
+## Univariate Analysis:
 
 Prior to conducting our analysis, we briefly explored the relationship between year and atmospheric co2. As expected, there is a strong, positive relationship between the two variables. Since 1980, Atmospheric co2 has steadily increased to a present value above 400 ppm. [FINISH PARAGRAPH]
 
@@ -242,6 +244,7 @@ season_actual_diff <- current_season - p3[1]; season_actual_diff # Under Predict
 > Second - Discussion of model limitations
   > What can be done to improve the model?
   > What can be done to improve the data?
+
 
 # Appendix
 
@@ -517,6 +520,39 @@ Rita_Census_tidy <- left_join(Rita, USA0_tidy, by = c("Year" = "year","CZ_NAME_S
 write.csv(Rita_Census_tidy, "Rita_Census_tidy.csv")
 
 ```
+
+#### Joining 9 Hurricanes Together:
+```{r, eval = FALSE}
+# Add Column for Hurricane Name:
+Katrina_Census_tidy <- Katrina_Census_tidy %>% mutate(name = "Katrina")
+Sandy_Census_tidy <- Sandy_Census_tidy %>% mutate(name = "Sandy")
+Ike_Census_tidy <- Ike_Census_tidy %>% mutate(name = "Ike")
+Wilma_Census_tidy <- Wilma_Census_tidy %>% mutate(name = "Wilma")
+Ivan_Census_tidy <- Ivan_Census_tidy %>% mutate(name = "Ivan")
+Irene_Census_tidy <- Irene_Census_tidy %>% mutate(name = "Irene")
+Charley_Census_tidy <- Charley_Census_tidy %>% mutate(name = "Charley")
+Matthew_Census_tidy <- Matthew_Census_tidy %>% mutate(name = "Matthew")
+Rita_Census_tidy <- Rita_Census_tidy %>% mutate(name = "Rita")
+
+# Remove Excess Columns that Remained:
+Sandy_Census_tidy <- Sandy_Census_tidy[, c(1:46,49,50)]
+Irene_Census_tidy <- Irene_Census_tidy[, c(1:46,49,50)]
+Matthew_Census_tidy <- Matthew_Census_tidy[, c(1:46,49,50)]
+
+# Bind together:
+Costly_9_Data <- rbind(Katrina_Census_tidy, Sandy_Census_tidy, Ike_Census_tidy, Wilma_Census_tidy, Ivan_Census_tidy, Irene_Census_tidy, Charley_Census_tidy, Matthew_Census_tidy, Rita_Census_tidy) 
+
+# Select Relevant Columns:
+Costly_9_Data <- Costly_9_Data %>%
+  select(Date, Time, `Latitude(N)`,`Longitude(W)`,`Wind(kts)`, Stage, Landfall, CZ_NAME_STR, DAMAGE_PROPERTY_NUM, DAMAGE_CROPS_NUM, STATE_ABBR, CZ_TIMEZONE, DAMAGE_TOTAL, Year, population, Category, name)
+
+# Edit Column Names:
+colnames(Costly_9_Data) <- tolower(colnames(Costly_9_Data))
+
+# Write to file:
+write.csv(Costly_9_Data, "Costly_9_Data.csv")
+```
+
 
 #### Link to the Websites Used:
 https://www.ncdc.noaa.gov/stormevents/faq.jsp
