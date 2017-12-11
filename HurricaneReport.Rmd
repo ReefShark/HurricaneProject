@@ -2,7 +2,9 @@
 title: "Hurricane Report"
 author: "Jerry Chen and Jocelyn Hunyadi"
 date: "12/4/2017"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, echo = FALSE}
 # Acquire Necessary R Packages:
+require(devtools)
+require(RCurl)
+require(httr)
+require("gganimate")
+require(ggmap)
 require(stringr)
 require(mdsr)
 require(tidyverse)
@@ -27,7 +34,7 @@ require(lubridate)
 
 # Abstract
 
-In the aftermath of the destruction caused by hurricane Harvey, many environmentalists and climate change specialists have suggested a link between global warming and the impact of tropical storms. Since 1980, and perhaps before then, atmospheric CO2 levels have increased steadily each year. Our analyses indicate that CO2 is correlated with an increase in total economic damage per Atlantic hurricane season. Additionally, CO2 was also positively correlated with the average damage caused by costly hurricanes (damage over $1 Billion) and the maximum damage caused by costly hurrianes each Atlantic hurricane season. [FINISH]
+In the aftermath of the destruction caused by hurricane Harvey, many environmentalists and climate change specialists have suggested a link between global warming and the impact of tropical storms. Since 1980, and perhaps before then, atmospheric CO2 levels have increased steadily each year. Our analyses indicate that CO2 is correlated with an increase in total economic damage per Atlantic hurricane season. Additionally, CO2 was also positively correlated with the average damage caused by the most costly hurricanes (damage over $1 Billion) and the maximum damage caused by these costly hurrianes each Atlantic hurricane season. [FINISH]
 
 > one paragraph
 > Summarize Goals/Results
@@ -553,6 +560,92 @@ colnames(Costly_9_Data) <- tolower(colnames(Costly_9_Data))
 write.csv(Costly_9_Data, "Costly_9_Data.csv")
 ```
 
+#### Creating Animations
+## Data Wrangling for Animations
+```{r, warning = FALSE}
+# Read in data (testing purposes)
+Costly_9_Data <- read_csv("Costly_9_Data.csv")
+
+Path_All <- Costly_9_Data
+names(Path_All)[4:5] = c("latitude", "longitude")
+Path_All <- Path_All %>%
+  select(date, time, name, latitude, longitude, `wind(kts)`, category) %>%
+  unique() %>%
+  filter(!is.na(latitude), !is.na(longitude), !is.na(`wind(kts)`)) %>%
+  mutate(isHurricane = ifelse(is.na(category), FALSE,
+                              ifelse(category > 0, TRUE, FALSE)),
+         longitude = -1*longitude,
+         time_long = ifelse(time == 0, "00:00:00", 
+                            ifelse(time == 600, "06:00:00",
+                                   ifelse(time == 1200, "12:00:00", "18:00:00"))),
+         date_time = ymd_hms(paste(as.character(date), time_long), tz = "US/Eastern"))
+```
+
+## Creating Individual Hurricane Animations
+```{r, warning = FALSE}
+hurricanes = unique(Path_All$name)
+for (i in 1:9) {
+  hurricane_name = hurricanes[i]
+  Hurricane_path <- Path_All %>%
+    filter(name == hurricane_name, !is.na(latitude), !is.na(longitude), !is.na(`wind(kts)`)) %>%
+    arrange(date_time)
+  
+  map_bbox <- make_bbox(lat = latitude, lon = longitude, data = Hurricane_path) #specify bounds of map
+  m <- get_map(location = c(lon = mean(Hurricane_path$longitude), lat = mean(Hurricane_path$latitude)), source = "google", maptype = "terrain", zoom = 4) #create map
+  
+  #top = max(Hurricane_path$latitude)
+  #bottom = min(Hurricane_path$latitude)
+  #left = min(Hurricane_path$longitude) - 8
+  #right = max(Hurricane_path$longitude) + 8
+  
+  p <- ggmap(m) + 
+    geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time), data=Hurricane_path) +
+    geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = isHurricane), shape = 8, data=Hurricane_path) + 
+    scale_color_manual(values=c("slateblue4", "firebrick3"))
+    #scale_x_continuous(limits = c(left, right), expand = c(0, 0)) +
+    #scale_y_continuous(limits = c(bottom, top), expand = c(0, 0))
+
+  file_location = paste("GIF_output/", hurricane_name, ".gif", sep = "")
+  gganimate(p, filename=file_location)
+}
+```
+
+
+## Combined GIF: All Hurricanes
+```{r}
+All = Path_All
+year(All$date) = 2017
+All$date_time = ymd_hms(paste(as.character(All$date), All$time_long), tz = "US/Eastern")
+
+m <- get_map(location = c(lon = mean(Path_All$longitude), lat = mean(All$latitude)), source = "google", maptype = "terrain", zoom = 4) #create map
+
+p <- ggmap(m) + 
+  geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time, color = name), data=All) +
+  geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = name), shape = 8, data=All)
+
+gganimate(p, filename="GIF_output/combined.gif")
+
+# Annotate or change font in ggplot (hurricane symbol)
+```
+
+###Extra Code (Temporary)
+```{r, eval = FALSE}
+Hurricane = Hermine #Set hurricane to be analyzed
+names(Hurricane)[3:4] = c("Latitude", "Longitude")
+Hurricane$Latitude = as.numeric(Hurricane$Latitude)
+Hurricane$Longitude = as.numeric(Hurricane$Longitude)
+Hurricane = Hurricane %>%
+  filter(!is.na(Latitude), !is.na(Longitude))
+Hurricane = Hurricane %>%
+  mutate(Longitude = -1*Longitude,
+         Time = ifelse(Time == "0000", "00:00:00", 
+                       ifelse(Time == "0600", "06:00:00",
+                              ifelse(Time == "1200", "12:00:00", "18:00:00"))),
+         gif_frame = c(1:nrow(Hurricane)),
+         isHurricane = Category > 0)
+```
+
+
 
 #### Link to the Websites Used:
 https://www.ncdc.noaa.gov/stormevents/faq.jsp
@@ -562,4 +655,3 @@ https://en.wikipedia.org/wiki/List_of_costliest_Atlantic_hurricanes
 https://en.wikipedia.org/wiki/Atlantic_hurricane_season
 https://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?src=bkmk (From census.gov)
 https://www.census.gov/data/datasets/time-series/demo/popest/intercensal-2000-2010-counties.html
-
