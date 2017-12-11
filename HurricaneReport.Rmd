@@ -605,7 +605,7 @@ for (i in 1:9) {
     #scale_x_continuous(limits = c(left, right), expand = c(0, 0)) +
     #scale_y_continuous(limits = c(bottom, top), expand = c(0, 0))
 
-  file_location = paste("GIF_output/", hurricane_name, ".gif", sep = "")
+  file_location = paste(hurricane_name, ".gif", sep = "")
   gganimate(p, filename=file_location)
 }
 ```
@@ -623,7 +623,7 @@ p <- ggmap(m) +
   geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time, color = name), data=All) +
   geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = name), shape = 8, data=All)
 
-gganimate(p, filename="GIF_output/combined.gif")
+gganimate(p, interval = .3, filename="combined.gif")
 
 # Annotate or change font in ggplot (hurricane symbol)
 ```
