@@ -34,12 +34,7 @@ require(lubridate)
 
 # Abstract
 
-In the aftermath of the destruction caused by hurricane Harvey, many environmentalists and climate change specialists have suggested a link between global warming and the impact of tropical storms. Since 1980, and perhaps before then, atmospheric CO2 levels have increased steadily each year. Our analyses indicate that CO2 is correlated with an increase in total economic damage per Atlantic hurricane season. Additionally, CO2 was also positively correlated with the average damage caused by the most costly hurricanes (damage over $1 Billion) and the maximum damage caused by these costly hurrianes each Atlantic hurricane season. [FINISH]
-
-> one paragraph
-> Summarize Goals/Results
-
-
+In the aftermath of the destruction caused by hurricane Harvey, many environmentalists and climate change specialists have suggested a link between global warming and the impact of tropical storms. Since 1980, and perhaps before then, atmospheric co2 levels have increased steadily each year. The goals of this report are, first, to determine if there is a significant relationship between increasing atmospheric co2 levels and hurricane damage and, second, to visually analyze the path of costly hurricanes. After adjusting for inflation, our analyses indicate that co2 is not significantly correlated with an increase in total economic damage per Atlantic hurricane season. Additionally, the paths of 9 of the most costly hurricanes do not suggest a specific path for highly damaging hurricanes, but reveal some interesting deviations from the general path shape.
 
 # Introduction
 
@@ -60,9 +55,7 @@ The second dataset, `costly_hurr`, includes Atlantic hurricanes that incurred $1
 
 The third dataset, `seasons_hurr`, includes the total amount of damage costs for each Atlantic hurricane season from 1980 to 2016. This dataset, like the previous, was scraped from Wikipedia and includes the following variables for each year: the number of tropical storms, the number of hurricanes, the number of major hurricanes (Category 3-5), deaths, and damage. Additionally, the `CO2_data` dataset was also joined to this dataset by the year for analysis.
 
-The final dataset is a compilation of hurricane path and damage data for 9 costly Atlantic hurricanes obtained from NOAA in addition to census data by county from the US Census Bureau website. The 9 hurricanes selected are among the Top 11 most costly Atlantic Hurricanes and include: Katrina, Sandy, Ike, Wilma, Ivan, Irene, Charley, Matthew, and Rita. The most costly Atlantic hurricane, Harvey, was not included because data is currently unavailable. Additionally, data for Andrew, the 6th most costly Atlantic hurricane, was limited in comparison to the other hurricanes. Rather than spending additional time wrangling the data for Andrew, we chose to include hurricane Rita instead. The `hurr_9` dataset includes the following variables for each hurricane at each date and time where it was a tropical storm: latitude, longitutde, wind speed (kts), stage, landfall, county, state abbreviation, property damage, crop damage, damage total, timezone, year, population, and category. [Mention Irene?]
-  > Note: there was some problem with the census data joining for Irene. I'm not sure what happened. 
-
+The final dataset is a compilation of hurricane path and damage data for 9 costly Atlantic hurricanes obtained from NOAA in addition to census data by county from the US Census Bureau website. The 9 hurricanes selected are among the Top 11 most costly Atlantic Hurricanes and include: Katrina, Sandy, Ike, Wilma, Ivan, Irene, Charley, Matthew, and Rita. The most costly Atlantic hurricane, Harvey, was not included because data is currently unavailable. Additionally, data for Andrew, the 6th most costly Atlantic hurricane, was limited in comparison to the other hurricanes. Rather than spending additional time wrangling the data for Andrew, we chose to include hurricane Rita instead. The `hurr_9` dataset includes the following variables for each hurricane at each date and time where it was a tropical storm: latitude, longitutde, wind speed (kts), stage, landfall, county, state abbreviation, property damage, crop damage, damage total, timezone, year, population, and category. 
 
 ```{r, echo = FALSE}
 # Obtain CO2 Data - Found originally in txt file:
@@ -164,12 +157,12 @@ summary(mod_avg)
 ggplot(costly_hurr_2, aes(y = sqrt_avg_damage, x = co2)) + geom_point() + labs(title = "Average Damage by Costly Hurricanes", x = "CO2 (ppm)", y = "Square Root Average Damage (Billions)") + geom_smooth(method = "lm")
 ```
 
-With `damage` as the response variable, co2 was not a significant predictor. However, when the square root of `damage` was used as the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for every increase 1 ppm increase in atmospheric co2, the square root of average damage (in Billions) by Atlantic Costly Hurricanes will increase by .03365. This model appears to suggest that increasing co2 is correlated with an increase in hurricane impact, specifically in the damage caused. 
+With `avg_damage` as the response variable, co2 was not a significant predictor. However, when the square root of `damage` was used as the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for every  1 ppm increase in atmospheric co2, the square root of average damageby Atlantic costly hurricanes will increase by .03365 billion dollars. This model appears to suggest that increasing co2 is correlated with an increase in hurricane impact, specifically in the damage caused. However, the model only accounts for 16.44% of the variation in the square root of average damage. 
 
 
 ## Linear Regression Model for Maximum Damage by Costly Atlantic Hurricanes each Season:
 
-```{r}
+```{r, echo = FALSE}
 # Looking at MAX damage for costly hurricanes:
 mod_max <- lm(sqrt_max_damage ~ co2, data = costly_hurr_2)
 summary(mod_max)
@@ -177,10 +170,11 @@ summary(mod_max)
 ggplot(costly_hurr_2, aes(y = sqrt_max_damage, x = co2)) + geom_point() + labs(title = "Damage by the Most Costly Hurricane", x = "CO2 (ppm)", y = "Sqare Root Max Damage (Billions)") + geom_smooth(method = "lm")
 ```
 
- > Insert commentary.
+Once again, with `max_damage` as the response variable, co2 was not a significant predictor. When the sqre root of `max_damage` was used as the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for every 1 ppm increase in atmospheric co2, the square root of maximum damage by Atlantic costly hurricanes will increase by an estimated .055 billion dollars. This model also appears to suggest that increasing damage is correlated with increasing atmospheric co2. However, once again, the model only accounts for 16.4% of the variation in the square root of maximum damage.
+
 
 ## Linear Regression Model for Total Damage for each Atlantic Hurricane Season 1980-2016:
-```{r}
+```{r, echo = FALSE}
 # Hurricane Season:
 seasons_hurr <- seasons_hurr %>%
   filter(!is.na(co2)) %>%
@@ -192,17 +186,49 @@ summary(season_mod1) # Sig at .05, R = .13
 
 ggplot(seasons_hurr, aes(x = co2, y = log_damage)) + geom_point() + labs(title = "Damage per Hurricane Season 1980 - 2016", x = "CO2 (ppm)", y = "Log Damage") + geom_smooth(method = "lm")
 
-
 ```
 
  > Insert Commentary.
+ 
+ 
+## Adjusted Model for Total Damage for each Atlantic Hurricane Season 1980-2016:
+```{r, echo = FALSE}
+# Baseline Year for Inflation Calculations: 2017
+# Adjusted damage values were done using an inflation calculator - see bottom of Appendix for link to the calculator:
+
+# Vector of adjusted damage values:
+damage_adjusted <- c(2993483009.71,122110396.04,255609326.42,6438993975.9,156686795,10315831784,128282764.6,195419630.28,14595443786.98,21284629838.71,283086840.09,4527588105.73,4395277975.77,462599813.15,2596452631.58,15052269685.04,5973992351.82,169052523.36,18461893251.53,8735364345.74,1718905923.34,9894391525.42,3564890494.72,5898463043.48,65289306511.38,200816267281.11,611763392.86,3568929594.58,48117518102.4,88530421.33,5124295547.93,20385371900.83,83766623300.26,1598840687.34,241728406.33,760125455.98,16546493643.94,367560000000)
+
+# Convert to a dataframe:
+damage_adjusted <- as.data.frame(damage_adjusted)
+
+# Add as a new column to the working Atlantic Season data:
+seasons_hurr <- cbind(seasons_hurr, damage_adjusted)
+
+# Add log damage adjusted column:
+seasons_hurr <- seasons_hurr %>% 
+  mutate(log_damage_adjusted = log(damage_adjusted)) %>%
+  # Remove NA entries for co2:
+  filter(!is.na(co2))
+
+# Fit the Model:
+mod_adj1 <- lm(log_damage_adjusted ~ co2, data = seasons_hurr)
+summary(mod_adj1)
+
+# Plot:
+ggplot(seasons_hurr, aes(x = co2, y = log_damage_adjusted)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Adjusted Damage Per Hurricane Season 1980-2016", x = "CO2 (ppm)", y = "Adjusted Log Damage")
+
+```
+
+  > Insert Commentary
 
 
 # Diagnostics
-> Report R-squared values here or in the results section?
 
 > Full diagnostics of the model
 > Predictions
+
+## Models and Predictions for 2017:
 
 ```{r}
 # Predicting Harvey Damage from Average:
@@ -242,7 +268,10 @@ season_lower_diff <- current_season - p3[2]; season_lower_diff # Under Predicted
 season_actual_diff <- current_season - p3[1]; season_actual_diff # Under Predicted
 ```
 
-
+## Hurricane Path:
+  > Discuss issues with damage - why we didn't add a heat map to the animation
+  
+  
 
 # Conclusion
 
@@ -655,3 +684,5 @@ https://en.wikipedia.org/wiki/List_of_costliest_Atlantic_hurricanes
 https://en.wikipedia.org/wiki/Atlantic_hurricane_season
 https://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?src=bkmk (From census.gov)
 https://www.census.gov/data/datasets/time-series/demo/popest/intercensal-2000-2010-counties.html
+http://www.usinflationcalculator.com/
+
