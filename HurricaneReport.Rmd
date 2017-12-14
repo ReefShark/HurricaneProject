@@ -149,46 +149,51 @@ costly_hurr_2 <- costly_hurr %>%
   summarise(avg_damage = mean(damage), total_damage = sum(damage), max_damage = max(damage)) %>%
   mutate(sqrt_avg_damage = sqrt(avg_damage), sqrt_max_damage = sqrt(max_damage))
 
+# Plot:
+ggplot(costly_hurr_2, aes(y = sqrt_avg_damage, x = co2)) + geom_point() + labs(title = "Average Damage by Costly Hurricanes", x = "CO2 (ppm)", y = "Square Root Average Damage (Billions)") + geom_smooth(method = "lm")
+
 # Fit the model:
 mod_avg <- lm(sqrt_avg_damage ~ co2, data = costly_hurr_2)
 summary(mod_avg)
 
-# Plot:
-ggplot(costly_hurr_2, aes(y = sqrt_avg_damage, x = co2)) + geom_point() + labs(title = "Average Damage by Costly Hurricanes", x = "CO2 (ppm)", y = "Square Root Average Damage (Billions)") + geom_smooth(method = "lm")
 ```
 
-With `avg_damage` as the response variable, co2 was not a significant predictor. However, when the square root of `damage` was used as the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for every  1 ppm increase in atmospheric co2, the square root of average damageby Atlantic costly hurricanes will increase by .03365 billion dollars. This model appears to suggest that increasing co2 is correlated with an increase in hurricane impact, specifically in the damage caused. However, the model only accounts for 16.44% of the variation in the square root of average damage. 
+Some hurricane seasons in our dataset contained only 1 costly hurricane while others had more than 1 costly hurricane. Our first model addressed the average damage caused by costly hurricanes each season. With `avg_damage` as the response variable, co2 was not a significant predictor. However, when the square root of `damage` was used as the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for every  1 ppm increase in atmospheric co2, the square root of average damageby Atlantic costly hurricanes will increase by .03365 billion dollars. This model appears to suggest that increasing co2 is correlated with an increase in hurricane impact, specifically in the damage caused. However, the model only accounts for 16.44% of the variation in the square root of average damage. 
 
 
 ## Linear Regression Model for Maximum Damage by Costly Atlantic Hurricanes each Season:
 
 ```{r, echo = FALSE}
-# Looking at MAX damage for costly hurricanes:
+# Plot:
+ggplot(costly_hurr_2, aes(y = sqrt_max_damage, x = co2)) + geom_point() + labs(title = "Damage by the Most Costly Hurricane", x = "CO2 (ppm)", y = "Sqare Root Max Damage (Billions)") + geom_smooth(method = "lm")
+
+# Modeling MAX damage for costly hurricanes:
 mod_max <- lm(sqrt_max_damage ~ co2, data = costly_hurr_2)
 summary(mod_max)
-
-ggplot(costly_hurr_2, aes(y = sqrt_max_damage, x = co2)) + geom_point() + labs(title = "Damage by the Most Costly Hurricane", x = "CO2 (ppm)", y = "Sqare Root Max Damage (Billions)") + geom_smooth(method = "lm")
 ```
 
-Once again, with `max_damage` as the response variable, co2 was not a significant predictor. When the sqre root of `max_damage` was used as the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for every 1 ppm increase in atmospheric co2, the square root of maximum damage by Atlantic costly hurricanes will increase by an estimated .055 billion dollars. This model also appears to suggest that increasing damage is correlated with increasing atmospheric co2. However, once again, the model only accounts for 16.4% of the variation in the square root of maximum damage.
+For the next model, the maximum damage caused by a costly hurricane each season was considered for the response. Once again, with `max_damage` as the response variable, co2 was not a significant predictor. When the square root of `max_damage` was used as the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for every 1 ppm increase in atmospheric co2, the square root of maximum damage by Atlantic costly hurricanes will increase by an estimated .055 billion dollars. This model also appears to suggest that increasing damage is correlated with increasing atmospheric co2. However, once again, the model only accounts for 16.4% of the variation in the square root of maximum damage.
 
 
 ## Linear Regression Model for Total Damage for each Atlantic Hurricane Season 1980-2016:
+
 ```{r, echo = FALSE}
 # Hurricane Season:
 seasons_hurr <- seasons_hurr %>%
   filter(!is.na(co2)) %>%
   mutate(log_damage = log(damage))
 
+# Plot:
+ggplot(seasons_hurr, aes(x = co2, y = log_damage)) + geom_point() + labs(title = "Damage per Hurricane Season 1980 - 2016", x = "CO2 (ppm)", y = "Log Damage") + geom_smooth(method = "lm")
+
   # Model with co2 as sole predictor:
 season_mod1 <- lm(log_damage ~ co2, data = seasons_hurr)
 summary(season_mod1) # Sig at .05, R = .13
 
-ggplot(seasons_hurr, aes(x = co2, y = log_damage)) + geom_point() + labs(title = "Damage per Hurricane Season 1980 - 2016", x = "CO2 (ppm)", y = "Log Damage") + geom_smooth(method = "lm")
-
 ```
 
- > Insert Commentary.
+The next response variable considered was the total damage caused by all hurricanes for each Atlantic hurricane season from 1980 to 2016. With `damage` as the response variable, co2 was not a significant predictor, as expected based on the previous two models. However, when `log_damage` was the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for ever 1 ppm increase in annual average atmospheric co2, the estimated log damage will increase by .04401. In other words, the model appears to suggest that increasing atmospheric co2 is correlated with increasing damage by hurricanes. However, this model only accounts for 13.92% of the variation in `log_damage`.
+ > Acording to the wikipedia: "All estimates of damage costs are expressed in contemporaneous US dollars" - safe to assume this has actually already been adjusted for inflation???
  
  
 ## Adjusted Model for Total Damage for each Atlantic Hurricane Season 1980-2016:
@@ -219,6 +224,7 @@ summary(mod_adj1)
 ggplot(seasons_hurr, aes(x = co2, y = log_damage_adjusted)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Adjusted Damage Per Hurricane Season 1980-2016", x = "CO2 (ppm)", y = "Adjusted Log Damage")
 
 ```
+
 
   > Insert Commentary
 
