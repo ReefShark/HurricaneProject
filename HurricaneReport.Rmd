@@ -135,12 +135,10 @@ ggplot(CO2_data, aes(x = year, y = co2)) + geom_point() + labs(title = "Change i
 
 
 # Results
-> Discuss the incorrect damage data?
-
-> What does model tell you about the research question?
-> Interpret coefficients in context/explain relevance
 
 ## Linear Regression Model for Average Damage by Costly Atlantic Hurricanes each Season:
+
+To determine if annual average atmospheric co2 (ppm) is postively correlated with the estimated economic cost of damage by hurricanes, we fit a series of linear models. If co2 is positively correlated, the estimated coefficient for co2 should be positive and the p-value associated with co2 should be significant (P-value < .05).
 
 ```{r, echo = FALSE}
 # Looking at AVERAGE damage for hurricanes that occurred in the same year:
@@ -192,41 +190,8 @@ summary(season_mod1) # Sig at .05, R = .13
 
 ```
 
-The next response variable considered was the total damage caused by all hurricanes for each Atlantic hurricane season from 1980 to 2016. With `damage` as the response variable, co2 was not a significant predictor, as expected based on the previous two models. However, when `log_damage` was the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for ever 1 ppm increase in annual average atmospheric co2, the estimated log damage will increase by .04401. In other words, the model appears to suggest that increasing atmospheric co2 is correlated with increasing damage by hurricanes. However, this model only accounts for 13.92% of the variation in `log_damage`.
- > Acording to the wikipedia: "All estimates of damage costs are expressed in contemporaneous US dollars" - safe to assume this has actually already been adjusted for inflation???
+The next response variable considered was the total damage caused by all hurricanes for each Atlantic hurricane season from 1980 to 2016. The damage estimates from this dataset are expressed in contemporaneous US dolalrs. With `damage` as the response variable, co2 was not a significant predictor, as expected based on the previous two models. However, when `log_damage` was the response variable, co2 was a significant predictor (P-value < .05). The model estimates that for ever 1 ppm increase in annual average atmospheric co2, the estimated log damage will increase by .04401. In other words, the model appears to suggest that increasing atmospheric co2 is correlated with increasing damage by hurricanes. However, this model only accounts for 13.92% of the variation in `log_damage`.
  
- 
-## Adjusted Model for Total Damage for each Atlantic Hurricane Season 1980-2016:
-```{r, echo = FALSE}
-# Baseline Year for Inflation Calculations: 2017
-# Adjusted damage values were done using an inflation calculator - see bottom of Appendix for link to the calculator:
-
-# Vector of adjusted damage values:
-damage_adjusted <- c(2993483009.71,122110396.04,255609326.42,6438993975.9,156686795,10315831784,128282764.6,195419630.28,14595443786.98,21284629838.71,283086840.09,4527588105.73,4395277975.77,462599813.15,2596452631.58,15052269685.04,5973992351.82,169052523.36,18461893251.53,8735364345.74,1718905923.34,9894391525.42,3564890494.72,5898463043.48,65289306511.38,200816267281.11,611763392.86,3568929594.58,48117518102.4,88530421.33,5124295547.93,20385371900.83,83766623300.26,1598840687.34,241728406.33,760125455.98,16546493643.94,367560000000)
-
-# Convert to a dataframe:
-damage_adjusted <- as.data.frame(damage_adjusted)
-
-# Add as a new column to the working Atlantic Season data:
-seasons_hurr <- cbind(seasons_hurr, damage_adjusted)
-
-# Add log damage adjusted column:
-seasons_hurr <- seasons_hurr %>% 
-  mutate(log_damage_adjusted = log(damage_adjusted)) %>%
-  # Remove NA entries for co2:
-  filter(!is.na(co2))
-
-# Fit the Model:
-mod_adj1 <- lm(log_damage_adjusted ~ co2, data = seasons_hurr)
-summary(mod_adj1)
-
-# Plot:
-ggplot(seasons_hurr, aes(x = co2, y = log_damage_adjusted)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Adjusted Damage Per Hurricane Season 1980-2016", x = "CO2 (ppm)", y = "Adjusted Log Damage")
-
-```
-
-
-  > Insert Commentary
 
 
 # Diagnostics
@@ -284,6 +249,8 @@ season_actual_diff <- current_season - p3[1]; season_actual_diff # Under Predict
 > First - remind of question and provide summary of findings
 > Second - Discussion of model limitations
   > What can be done to improve the model?
+    > First 2 models NOT adjusted for inflation
+    > Addition of a measure fo the potential the hurricane had for damage
   > What can be done to improve the data?
 
 
