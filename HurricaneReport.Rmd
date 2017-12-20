@@ -313,8 +313,11 @@ p <- ggmap(m) +
   geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time, color = name), data=All) +
   geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = name), shape = 8, data=All)
 
+# To view: open the file "combined.gif" in the repository
 gganimate(p, interval = .3, filename="combined.gif")
 ```
+
+
 
 # Conclusion
 
