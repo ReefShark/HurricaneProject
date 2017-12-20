@@ -250,9 +250,75 @@ The accepted damage for the 2017 hurricane season is 367.5 Billion USD. Using th
 
 
 ## Hurricane Path:
-  > Discuss issues with damage - why we didn't add a heat map to the animation
+
+In addition to the correlation and prediction analyses of the hurricane strength, co2 levels, and hurricane damage discussed above, another major goal of our project was to be able to dynamically animate the hurricanes used in our analyses using the `gganimate` package, something that went beyond the scope of the material taught in class.
+
+Initially, we envisioned an animation that not only displayed the path of the hurricane, but showed the damage of the hurricane as it progressed through the continental US in the form of a heatmap. While we did have damage and death data at the county level at specific time intervals that coincided with our path (latitude & longitude) data, when we summed up the damage figures and compared with figures that news outlets reported, it became apparent that the data we had was unreliable. For some hurricanes, the summed values were much higher than the numbers presented by news outlets, and for others, the summed values were much lower. As a result, we decided to remove the damage component of the animation and focus on the path component.
+
+The data used for the path animations came from the `Costly_9_Data`, described earlier in the report. Below is the code used to wrangle the data provided in this dataset to match the aesthetics of the `gganimate` function. In particular, the date_time column was created by combining the time and date values for each observation. Each of these date_time values served as the frame marker for the animation, with the time between intervals being 6 hours, same as presented in the original NOAA dataset.
+
+## Data Wrangling for Animations
+```{r, warning = FALSE, eval = FALSE}
+# Read in data
+Costly_9_Data <- read_csv("Costly_9_Data.csv")
+
+Path_All <- Costly_9_Data
+names(Path_All)[4:5] = c("latitude", "longitude")
+Path_All <- Path_All %>%
+  select(date, time, name, latitude, longitude, `wind(kts)`, category) %>%
+  unique() %>%
+  filter(!is.na(latitude), !is.na(longitude), !is.na(`wind(kts)`)) %>% #removing missing data
+  mutate(isHurricane = ifelse(is.na(category), FALSE, #creating the isHurricane designation
+                              ifelse(category > 0, TRUE, FALSE)),
+         longitude = -1*longitude, #negating longitude to match the latitude/longitude designation that Google Maps uses
+         time_long = ifelse(time == 0, "00:00:00",  #converting from military time
+                            ifelse(time == 600, "06:00:00",
+                                   ifelse(time == 1200, "12:00:00", "18:00:00"))),
+         date_time = ymd_hms(paste(as.character(date), time_long), tz = "US/Eastern"))
+```
+
+The code below looped through all the hurricanes we had path data for and produced individual animations, outputted in GIF format. The map background for the animations was pulled from Google Maps and the frame of the background adjusted to best capture the entirety of each of the individual hurricane paths. In addition to outlining the path of the hurricane, the size of the hurricane symbol adjusted to correspond with the wind speed. The symbol also changed colors depending on the classification of the hurricane at each frame. A blue symbol corresponded to a tropical storm or tropical depression, while a red symbol corresponded with to an actual hurricane, with hurricane-force winds. These 9 individual hurricane path animations were written into the working directory.
+
+## Creating Individual Hurricane Animations
+```{r, warning = FALSE, eval = FALSE}
+hurricanes = unique(Path_All$name)
+
+# for loop that iterates through the 9 hurricanes
+for (i in 1:9) {
+  hurricane_name = hurricanes[i]
+  Hurricane_path <- Path_All %>%
+    filter(name == hurricane_name, !is.na(latitude), !is.na(longitude), !is.na(`wind(kts)`)) %>%
+    arrange(date_time)
   
+  map_bbox <- make_bbox(lat = latitude, lon = longitude, data = Hurricane_path) #specify bounds of map
+  m <- get_map(location = c(lon = mean(Hurricane_path$longitude), lat = mean(Hurricane_path$latitude)), source = "google", maptype = "terrain", zoom = 4) #create map
   
+  p <- ggmap(m) + 
+    geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time), data=Hurricane_path) +
+    geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = isHurricane), shape = 8, data=Hurricane_path) + 
+    scale_color_manual(values=c("slateblue4", "firebrick3")) #setting the colors to red and blue for the hurricane designation in the animation
+
+  file_location = paste(hurricane_name, ".gif", sep = "")
+  gganimate(p, filename=file_location)
+}
+```
+
+We additionally wanted to combine all these hurricanes into one animation in an attempt to analyze the paths and timing of these 9 costly hurricanes. This was done by imposing all 9 of the hurricanes onto one year (2017), as if all of these hurricanes occurred in the same hurricane season. The resulting animation revealed some interesting trends, but nothing that stood out in particular with regards to the hurricane path and hurricane timing. Generally, with the exception of Hurricane Sandy, all the hurricanes began in a northwesterly direction and veered past the continental US in a northeasterly direction. Hurricane Sandy did the opposite, heading northeasterly along the US East Coast initially, before abrubtly veering west, making landfall around New York. Although some hurricanes struck at the same time, there was a generally even spacing of the hurricanes. Sandy was the latest of these hurricanes, which may explain why the path of Sandy differed from the rest.  
+
+## Combined GIF: All Hurricanes
+```{r, eval = FALSE}
+All = Path_All
+year(All$date) = 2017 #setting all the years to 2017
+All$date_time = ymd_hms(paste(as.character(All$date), All$time_long), tz = "US/Eastern") #creating the frame for the animation
+
+m <- get_map(location = c(lon = mean(Path_All$longitude), lat = mean(All$latitude)), source = "google", maptype = "terrain", zoom = 4) #create map
+
+p <- ggmap(m) + 
+  geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time, color = name), data=All) +
+  geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = name), shape = 8, data=All)
+
+gganimate(p, interval = .3, filename="combined.gif")
+```
 
 # Conclusion
 
@@ -262,9 +328,7 @@ However, it is important to note that the first two models failed to predict the
 
 The models could be further improved by including a variable for the hurricanes damage potential. In other words, based on the path, known for older hurricanes and predicted for new ones, how much damage could the hurricane potentially cause? One factor in damage potential is the population affected. For example, consder two hurricanes with the same strength. If the first hurricane primarily encounters rural areas, its potential for damage is reduced. If the second hurricane encounters a higher concentration of urban or industrial areas, its potential for damage would be increased since more homes, industry, infrastructure, and other buildings could be destroyed. Accounting for this lurking variable may improve the predictive power of our models and may even suggest an even greater association between atmospheric co2 and hurricane damage.
 
-
-> Summarise Path findings.
-> Limitation of Path
+The generation of the path animations was a general success, given the aforementioned damage/deaths data limitations. The animation of the paths were successfully completed for all 9 hurricanes that we had data for. While the animations showed no general trend in the paths and timing of these costly hurricanes, a mathematical approach to assessing the similarility of paths would be an interesting next step. Our animation analysis was also only focused on the 9 costly hurricanes of the past two decades or so. While the incorporation of more hurricanes would be useful in analyzing path trends, the animation itself may become too cluttered and become a hairball of sorts, which may not serve us much use. Therefore, a mathematical approach to assessing the similarity of paths, in addition to a more concise version of the animation with more hurricanes, would also be a good next step.
 
 
 
@@ -492,7 +556,7 @@ write.csv(USA0_tidy, "USA2000_10_tidy.csv")
 The Census data for 2010-2016 was joined to hurricanes that fell within those years. Similarly, the Census data for 2000-2010 was joined to the remaining hurricanes. Census data was joined to each of our 9 hurricanes. Once again, Rita will be used as the example in the code below:
 
 #### Join Path, Damage, and Census Data:
-```{r}
+```{r, eval = FALSE}
 # Preparations to the Census Data before Joining:
 # 2010-2016 Census Data:
 USA_tidy <- read_csv("HurricaneData/USA2010_16_tidy.csv")
@@ -575,73 +639,7 @@ colnames(Costly_9_Data) <- tolower(colnames(Costly_9_Data))
 write.csv(Costly_9_Data, "Costly_9_Data.csv")
 ```
 
-#### Creating Animations
-## Data Wrangling for Animations
-```{r, warning = FALSE}
-# Read in data (testing purposes)
-Costly_9_Data <- read_csv("Costly_9_Data.csv")
 
-Path_All <- Costly_9_Data
-names(Path_All)[4:5] = c("latitude", "longitude")
-Path_All <- Path_All %>%
-  select(date, time, name, latitude, longitude, `wind(kts)`, category) %>%
-  unique() %>%
-  filter(!is.na(latitude), !is.na(longitude), !is.na(`wind(kts)`)) %>%
-  mutate(isHurricane = ifelse(is.na(category), FALSE,
-                              ifelse(category > 0, TRUE, FALSE)),
-         longitude = -1*longitude,
-         time_long = ifelse(time == 0, "00:00:00", 
-                            ifelse(time == 600, "06:00:00",
-                                   ifelse(time == 1200, "12:00:00", "18:00:00"))),
-         date_time = ymd_hms(paste(as.character(date), time_long), tz = "US/Eastern"))
-```
-
-## Creating Individual Hurricane Animations
-```{r, warning = FALSE}
-hurricanes = unique(Path_All$name)
-for (i in 1:9) {
-  hurricane_name = hurricanes[i]
-  Hurricane_path <- Path_All %>%
-    filter(name == hurricane_name, !is.na(latitude), !is.na(longitude), !is.na(`wind(kts)`)) %>%
-    arrange(date_time)
-  
-  map_bbox <- make_bbox(lat = latitude, lon = longitude, data = Hurricane_path) #specify bounds of map
-  m <- get_map(location = c(lon = mean(Hurricane_path$longitude), lat = mean(Hurricane_path$latitude)), source = "google", maptype = "terrain", zoom = 4) #create map
-  
-  #top = max(Hurricane_path$latitude)
-  #bottom = min(Hurricane_path$latitude)
-  #left = min(Hurricane_path$longitude) - 8
-  #right = max(Hurricane_path$longitude) + 8
-  
-  p <- ggmap(m) + 
-    geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time), data=Hurricane_path) +
-    geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = isHurricane), shape = 8, data=Hurricane_path) + 
-    scale_color_manual(values=c("slateblue4", "firebrick3"))
-    #scale_x_continuous(limits = c(left, right), expand = c(0, 0)) +
-    #scale_y_continuous(limits = c(bottom, top), expand = c(0, 0))
-
-  file_location = paste(hurricane_name, ".gif", sep = "")
-  gganimate(p, filename=file_location)
-}
-```
-
-
-## Combined GIF: All Hurricanes
-```{r}
-All = Path_All
-year(All$date) = 2017
-All$date_time = ymd_hms(paste(as.character(All$date), All$time_long), tz = "US/Eastern")
-
-m <- get_map(location = c(lon = mean(Path_All$longitude), lat = mean(All$latitude)), source = "google", maptype = "terrain", zoom = 4) #create map
-
-p <- ggmap(m) + 
-  geom_path(aes(x=longitude, y=latitude, cumulative = TRUE, frame = date_time, color = name), data=All) +
-  geom_point(aes(x=longitude, y=latitude, size = `wind(kts)`, frame = date_time, color = name), shape = 8, data=All)
-
-gganimate(p, interval = .3, filename="combined.gif")
-
-# Annotate or change font in ggplot (hurricane symbol)
-```
 
 ###Extra Code (Temporary)
 ```{r, eval = FALSE}
